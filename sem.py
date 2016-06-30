@@ -51,6 +51,54 @@ class Objective(object):
             U.T)
 
 
+def calc_f_ML(Sigma, S, n):
+    """
+    f_ML(目的関数)を計算する
+
+    Args:
+        S:     観測値
+        Sigma: 母数
+        n:     観測変数の数
+
+    Returns:
+        f_ML(目的関数)
+    """
+    SigmaInv = numpy.linalg.inv(Sigma)
+    SigmaS = numpy.dot(SigmaInv, S)
+
+    return numpy.trace(SigmaS) - numpy.log(numpy.linalg.det(SigmaS)) - n
+
+
+def calc_chi_squared(Sigma, S, n, N = 100):
+    """
+    χ^2を計算する
+
+    Args:
+        Sigma: 母数
+        S:     観測値
+        n:     観測変数の数
+        N:     標本数(観測対象の数)
+
+    Returns:
+        χ^2
+    """
+    return (N - 1) * calc_f_ML(Sigma, S, n)
+
+
+def calc_df(n, p):
+    """
+    df(自由度)を計算する
+
+    Args:
+        n:   観測変数の数
+        p:   推定する母数の数
+
+    Returns:
+        df(自由度)
+    """
+    return 0.5 * n * (n + 1) - p
+
+
 def calc_gfi(Sigma, S):
     n = len(Sigma)
     I = numpy.identity(n)
@@ -61,22 +109,63 @@ def calc_gfi(Sigma, S):
     return 1 - numer / denom
 
 
-def calc_agfi(n, p, gfi):
+def calc_agfi(gfi, p, n):
     """
     AGFIを計算する
 
     Args:
-        n:   観測変数の数
-        p:   推定する母数の数
         gfi: 適合度
+        p:   推定する母数の数
+        n:   観測変数の数
 
     Returns:
         AGFI(自由度調整済み適合度指標)
     """
-    df = 0.5 * n * (n + 1) - p # 自由度
-    denom = 2 * df
+    denom = 2 * calc_df(n, p)
     numer = n * (n + 1) * (1 - gfi)
     return 1 - numer / denom
+
+
+def calc_cfi(Sigma, S, p, n, N = 100):
+    """
+    CFI(比較適合度指標)を計算する
+
+    Args:
+        Sigma: 母数
+        S:     観測値
+        p:     推定する母数の数
+        n:     観測変数の数
+        N:     標本数(観測対象の数)
+
+    Returns:
+        CFI(比較適合度指標)
+    """
+    df = calc_df(n, p)
+    f_ML = calc_f_ML(Sigma, S, n)
+    df_0 = 0.5 * n * (n - 1)
+    f_0 = -numpy.log(numpy.linalg.det(numpy.diag(S) ** (-1) * S))
+    denom = numpy.maximum((N - 1) * f_ML - df, 0)
+    numer = numpy.maximum((N - 1) * f_0 - df_0, denom)
+    return 1 - numer / denom
+
+
+def calc_aic(Sigma, S, p, n, N = 100):
+    """
+    AIC(赤池情報量基準)を計算する
+
+    Args:
+        Sigma: 母数
+        S:     観測値
+        p:     推定する母数の数
+        n:     観測変数の数
+        N:     標本数(観測対象の数)
+
+    Returns:
+        AIC(赤池情報量基準)
+    """
+    chi_squared = calc_chi_squared(Sigma, S, n)
+    df = calc_df(n, p)
+    return chi_squared - df
 
 
 def sem(n, alpha, sigma, S, alpha_fixed=None, sigma_fixed=None):
@@ -97,6 +186,8 @@ def sem(n, alpha, sigma, S, alpha_fixed=None, sigma_fixed=None):
     gfi = calc_gfi(Sigma, S)
 
     num_of_obs_vars = numpy.array(S).shape[0]
-    agfi = calc_agfi(num_of_obs_vars, num_of_params, gfi)
+    agfi = calc_agfi(gfi, num_of_params, num_of_obs_vars)
+    cfi  = calc_cfi(Sigma, S, num_of_params, num_of_obs_vars)
+    aic  = calc_aic(Sigma, S, num_of_params, num_of_obs_vars)
 
-    return A, Sigma_e, gfi, agfi
+    return A, Sigma_e, gfi, agfi, cfi, aic
