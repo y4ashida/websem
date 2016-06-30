@@ -144,8 +144,8 @@ def calc_cfi(Sigma, S, p, n, N = 100):
     f_ML = calc_f_ML(Sigma, S, n)
     df_0 = 0.5 * n * (n - 1)
     f_0 = -numpy.log(numpy.linalg.det(numpy.diag(S) ** (-1) * S))
-    denom = numpy.maximum((N - 1) * f_ML - df, 0)
-    numer = numpy.maximum((N - 1) * f_0 - df_0, denom)
+    numer = numpy.maximum((N - 1) * f_ML - df, 0)
+    denom = numpy.maximum((N - 1) * f_0 - df_0, numer)
     return 1 - numer / denom
 
 
@@ -163,7 +163,7 @@ def calc_aic(Sigma, S, p, n, N = 100):
     Returns:
         AIC(赤池情報量基準)
     """
-    chi_squared = calc_chi_squared(Sigma, S, n)
+    chi_squared = calc_chi_squared(Sigma, S, n, N)
     df = calc_df(n, p)
     return chi_squared - df
 
