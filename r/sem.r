@@ -1,0 +1,6 @@
+library(lavaan)
+model <- readLines("./model.lav")
+cov <- getCov('1 0.7731109 1 0.7155250 0.7227997 1 0.6341241 0.4515933 0.2321334 1 0.7394903 0.8526245 0.5787253 0.5881328 1 0.8100869 0.6718607 0.4785180 0.6095649 0.7523879 1', names=c("v0", "v1", "v2", "v3", "v4", "v5"))
+fit <- sem(model, sample.cov=cov, sample.nobs=47)
+summary(fit, standardized=TRUE)
+fitMeasures(fit, fit.measures = "all", baseline.model = NULL)
